@@ -6,12 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0"
 byteorder = "1.4.3"
 env_logger = "0.9.0"
 getrandom = "0.2.3"
 line_drawing = "1.0.0"
 log = "0.4.14"
 pixels = "0.8.0"
-randomize = "3.0.1"
+rlua = "0.18.0"
+thiserror = "1.0"
 winit = "0.25"
 winit_input_helper = "0.10.0"
