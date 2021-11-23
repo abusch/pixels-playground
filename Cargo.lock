@@ -812,6 +812,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "mlua"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4235d7e740d73d7429df6f176c81b248f05c39d67264d45a7d8cecb67c227f6f"
+dependencies = [
+ "bstr",
+ "cc",
+ "num-traits",
+ "once_cell",
+ "pkg-config",
+]
+
+[[package]]
 name = "naga"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1036,10 +1049,12 @@ dependencies = [
  "byteorder",
  "env_logger",
  "getrandom",
+ "lazy_static",
  "line_drawing",
  "log",
+ "mlua",
+ "parking_lot",
  "pixels",
- "rlua",
  "thiserror",
  "winit",
  "winit_input_helper",
@@ -1156,19 +1171,6 @@ name = "renderdoc-sys"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1382d1f0a252c4bf97dc20d979a2fdd05b024acd7c2ed0f7595d7817666a157"
-
-[[package]]
-name = "rlua"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24d76c08e66e69d182a41ff735a0931ecf1879de3552c6989c65a8268ee95b19"
-dependencies = [
- "bitflags",
- "bstr",
- "cc",
- "libc",
- "num-traits",
-]
 
 [[package]]
 name = "rusttype"

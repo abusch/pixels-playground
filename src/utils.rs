@@ -1,4 +1,7 @@
-use winit::{dpi::{LogicalPosition, LogicalSize}, event_loop::EventLoop};
+use winit::{
+    dpi::{LogicalPosition, LogicalSize},
+    event_loop::EventLoop,
+};
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 

@@ -1,10 +1,9 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-
 use anyhow::Result;
 use log::error;
-use pixels::{ Pixels, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
@@ -25,9 +24,11 @@ fn main() -> Result<()> {
 
     let surface_texture = SurfaceTexture::new(p_width, p_height, &window);
 
-    let mut lua = lua::LuaEffect::new();
+    let script_name = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "lua/plasma.lua".to_owned());
+    let mut lua = lua::LuaEffect::new(script_name);
     lua.init()?;
-    // let mut plasma = Plasma::new(SCREEN_WIDTH as usize, SCREEN_HEIGHT as usize);
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
     let mut paused = false;
 
@@ -83,68 +84,3 @@ fn main() -> Result<()> {
         }
     });
 }
-
-/* #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Rgb(u8, u8, u8);
-
-#[derive(Clone, Debug)]
-struct Plasma {
-    width: usize,
-    height: usize,
-    screen: Box<[u8]>,
-    palette: Box<[Rgb]>,
-    frame_count: u64,
-}
-
-impl Plasma {
-    fn new(width: usize, height: usize) -> Self {
-        assert!(width != 0 && height != 0);
-        let palette: Vec<Rgb> = (0..=255)
-            .map(|c| {
-                let i = c % 16;
-                let j = c / 16;
-                Rgb(i * 16, 0u8, j * 16)
-            })
-            .collect();
-
-        Self {
-            width,
-            height,
-            screen: vec![0u8; width * height].into_boxed_slice(),
-            palette: palette.into_boxed_slice(),
-            frame_count: 0,
-        }
-    }
-
-    fn update(&mut self) {
-        self.frame_count += 1;
-
-        let time = self.frame_count as f32 / 10.0;
-        for (i, pix) in self.screen.iter_mut().enumerate() {
-            let x = i % self.width;
-            let y = i / self.width;
-            let dx = (x as f32 / self.width as f32) - 0.5;
-            let dy = (y as f32 / self.height as f32) - 0.5;
-
-            let mut v = f32::sin(dx * 10.0 + time);
-            let cx = dx + 0.5 * f32::sin(time / 5.0);
-            let cy = dy + 0.5 * f32::cos(time / 3.0);
-            v += f32::sin(f32::sqrt(50.0 * (cx * cx + cy * cy) + 1.0 + time));
-            v += f32::cos(f32::sqrt(dx * dx + dy * dy) - time);
-
-            let r = ((v * PI).sin() * 15.0).floor() as u8;
-            let b = ((v * PI).cos() * 15.0).floor() as u8;
-
-            let color = r * 16 + b;
-            *pix = color;
-        }
-    }
-
-    fn draw(&self, screen: &mut [u8]) {
-        for (c, pix) in self.screen.iter().zip(screen.chunks_exact_mut(4)) {
-            let Rgb(r, g, b) = self.palette[*c as usize];
-            let color = [r, g, b, 255];
-            pix.copy_from_slice(&color);
-        }
-    }
-} */
