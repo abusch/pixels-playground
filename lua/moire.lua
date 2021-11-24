@@ -1,10 +1,10 @@
-function _Init()
+function Init()
   -- Initialize palette
   pal(0, 0, 0, 0)
   pal(255, 255, 255, 255)
 end
 
-function _Update(t)
+function Render(t)
   local time = t / 1000 
 
   local cx1 = math.sin(time / 2) * W / 3 + W / 2
@@ -12,7 +12,6 @@ function _Update(t)
   local cx2 = math.cos(time / 3) * W / 3 + W / 2
   local cy2 = math.cos(time) * H / 3 + H / 2
   
-
   for y=0,H-1 do
     local dy = (y - cy1) * (y - cy1)
     local dy2 = (y - cy2) * (y - cy2)

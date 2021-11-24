@@ -1,23 +1,15 @@
-function _Init()
+function Init()
   -- Initialize palette
   for i=0,255 do
     local v = i / 255 * 6 - 3 
-    --[[ local r = math.max(math.floor(math.sin(v * math.pi) * 255), 0)
-    local b = math.max(math.floor(math.cos(v * math.pi) * 255), 0) ]]
     local r = 255
     local g = math.max(math.floor(math.cos(v * math.pi) * 255), 0)
     local b = math.max(math.floor(math.sin(v * math.pi) * 255), 0)
     pal(i, r, g, b)
   end
-
-  --[[ for i=0,15 do
-    for j=0,15 do
-      pal(i*16+j, i*16, 0, j*16)
-    end
-  end ]]
 end
 
-function _Update(t)
+function Render(t)
   local time = t / 500
   for y=0,H-1 do
     local dy = (y / H) - 0.5

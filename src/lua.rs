@@ -98,7 +98,7 @@ impl LuaEffect {
             .as_millis();
 
         // Run effect's update function
-        let update: Option<Function> = globals.get("_Update")?;
+        let update: Option<Function> = globals.get("Render")?;
         if let Some(f) = update {
             f.call::<_, ()>(time)?;
         }
@@ -124,12 +124,12 @@ impl LuaEffect {
             .store(false, std::sync::atomic::Ordering::SeqCst);
 
         // Run init function, if there is one
-        let init_func: Option<Function> = self.lua.globals().get("_Init")?;
+        let init_func: Option<Function> = self.lua.globals().get("Init")?;
         if let Some(f) = init_func {
-            info!("Calling _Init() function...");
+            info!("Calling Init() function...");
             f.call(())?;
         } else {
-            info!("No _Init() function to call...");
+            info!("No Init() function to call...");
         }
 
         Ok(())

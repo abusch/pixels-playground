@@ -1,6 +1,6 @@
 local blobs = {}
 
-function _Init()
+function Init()
   -- Initialize palette
   for i=0,255 do
     pal(i, i/3, i/3, i)
@@ -18,7 +18,7 @@ function _Init()
   end
 end
 
-function _Update(t)
+function Render(t)
   local time = t / 30000
 
   local shift = 0
@@ -27,7 +27,6 @@ function _Update(t)
     b.y = math.cos((time + shift) * math.pi * b.speed) * H * b.scaley + (H/2)
     shift = shift + 0.5
   end
-
 
   for y=0,H-1 do
     for x=0,W-1 do
