@@ -61,6 +61,14 @@ impl LuaEffect {
                 Ok(())
             })?;
             globals.set("cls", cls)?;
+            // pget
+            let pget = self
+                .lua
+                .create_function(|_, (x, y): (usize, usize)| {
+                    let c = SCREEN.lock().pget(x, y);
+                    Ok(c)
+                })?;
+            globals.set("pget", pget)?;
             // pset
             let pset = self
                 .lua
@@ -119,7 +127,9 @@ impl LuaEffect {
         self.watcher
             .watch(&self.script_path, notify::RecursiveMode::NonRecursive)?;
         // and exec...
-        self.lua.load(&script).exec()?;
+        self.lua.load(&script)
+            .set_name(&self.script_path.display().to_string())?
+            .exec()?;
         self.needs_reload
             .store(false, std::sync::atomic::Ordering::SeqCst);
 
@@ -169,6 +179,10 @@ impl Screen {
 
     fn cls(&mut self, col: u8) {
         self.screen.iter_mut().for_each(|p| *p = col);
+    }
+
+    pub fn pget(&mut self, x: usize, y: usize) -> u8 {
+        self.screen[x + self.width * y]
     }
 
     pub fn pset(&mut self, x: usize, y: usize, c: u8) {
