@@ -19,7 +19,7 @@ function _Init()
 end
 
 function _Update(t)
-  local time = t / 50000
+  local time = t / 30000
 
   local shift = 0
   for _,b in ipairs(blobs) do

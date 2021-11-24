@@ -1,5 +1,5 @@
 [package]
-name = "pixels-demos"
+name = "pixels-playground"
 version = "0.1.0"
 edition = "2021"
 
@@ -19,6 +19,7 @@ mlua = { version = "0.6.6", features = ["luajit"]}
 thiserror = "1.0"
 winit = "0.25"
 winit_input_helper = "0.10.0"
+notify = "5.0.0-pre.13"
 
 [profile.release]
 debug=true

@@ -16,5 +16,5 @@ Lua scripts can optionally define a `_Init()` function which is called once, and
 
 ## TODO
 - [ ] better error handling
-- [ ] hot-reload of lua scripts
+- [x] hot-reload of lua scripts
 - [ ] more api

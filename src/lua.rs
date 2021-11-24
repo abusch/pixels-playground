@@ -1,11 +1,14 @@
-use std::path::Path;
-use std::path::PathBuf;
-use std::time::UNIX_EPOCH;
+use std::{
+    path::{Path, PathBuf},
+    sync::{atomic::AtomicBool, Arc},
+    time::UNIX_EPOCH,
+};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
-use mlua::prelude::*;
-use mlua::Function;
+use log::{error, info};
+use mlua::{prelude::*, Function};
+use notify::{recommended_watcher, Watcher};
 use parking_lot::Mutex;
 
 use crate::SCREEN_HEIGHT;
@@ -19,66 +22,73 @@ pub struct LuaEffect {
     lua: Lua,
     frame_count: u64,
     script_path: PathBuf,
+    needs_reload: Arc<AtomicBool>,
+    watcher: Box<dyn Watcher>,
 }
 
 impl LuaEffect {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         let lua = Lua::new();
+        let needs_reload = Arc::new(AtomicBool::new(false));
+        let needs_reload_clone = Arc::clone(&needs_reload);
+
+        let watcher = recommended_watcher(move |res| match res {
+            Ok(_event) => needs_reload_clone.store(true, std::sync::atomic::Ordering::SeqCst),
+            Err(e) => error!("Failed to setup inotify watcher: {}", e),
+        })
+        .unwrap();
         LuaEffect {
             lua,
             frame_count: 0,
             script_path: path.as_ref().to_path_buf(),
+            needs_reload,
+            watcher: Box::new(watcher),
         }
     }
 
     pub fn init(&mut self) -> Result<()> {
         // Set up Lua environment
-        let globals = self.lua.globals();
-        globals.set("W", SCREEN_WIDTH)?;
-        globals.set("H", SCREEN_HEIGHT)?;
-        globals.set("time", self.frame_count)?;
+        {
+            let globals = self.lua.globals();
+            globals.set("W", SCREEN_WIDTH)?;
+            globals.set("H", SCREEN_HEIGHT)?;
+            globals.set("time", self.frame_count)?;
 
-        // put API functions into global context
-        // cls
-        let cls = self.lua.create_function(|_, c: u8| {
-            SCREEN.lock().cls(c);
-            Ok(())
-        })?;
-        globals.set("cls", cls)?;
-        // pset
-        let pset = self
-            .lua
-            .create_function(|_, (x, y, c): (usize, usize, u8)| {
-                SCREEN.lock().pset(x, y, c);
+            // put API functions into global context
+            // cls
+            let cls = self.lua.create_function(|_, c: u8| {
+                SCREEN.lock().cls(c);
                 Ok(())
             })?;
-        globals.set("pset", pset)?;
-        // pal
-        let pal = self
-            .lua
-            .create_function(|_, (i, r, g, b): (u8, u8, u8, u8)| {
-                SCREEN.lock().pal(i, Rgb(r, g, b));
-                Ok(())
-            })?;
-        globals.set("pal", pal)?;
-
-        // Load and execute script
-        let script = std::fs::read_to_string(&self.script_path)?;
-        self.lua.load(&script).exec()?;
-
-        // Run init function, if there is one
-        let init_func: Option<Function> = self.lua.globals().get("_Init")?;
-        if let Some(f) = init_func {
-            println!("Calling _Init() function...");
-            f.call(())?;
-        } else {
-            println!("No _Init() function to call...");
+            globals.set("cls", cls)?;
+            // pset
+            let pset = self
+                .lua
+                .create_function(|_, (x, y, c): (usize, usize, u8)| {
+                    SCREEN.lock().pset(x, y, c);
+                    Ok(())
+                })?;
+            globals.set("pset", pset)?;
+            // pal
+            let pal = self
+                .lua
+                .create_function(|_, (i, r, g, b): (u8, u8, u8, u8)| {
+                    SCREEN.lock().pal(i, Rgb(r, g, b));
+                    Ok(())
+                })?;
+            globals.set("pal", pal)?;
         }
+
+        self.load_and_exec_script()?;
 
         Ok(())
     }
 
     pub fn update(&mut self) -> Result<()> {
+        if self.needs_reload.load(std::sync::atomic::Ordering::SeqCst) {
+            info!("Reloading lua script");
+            self.load_and_exec_script()?;
+        }
         let globals = self.lua.globals();
         self.frame_count += 1;
         globals.set("time", self.frame_count)?;
@@ -99,6 +109,29 @@ impl LuaEffect {
     pub fn draw(&self, pixels: &mut [u8]) -> Result<()> {
         let screen = SCREEN.lock();
         screen.draw(pixels);
+        Ok(())
+    }
+
+    fn load_and_exec_script(&mut self) -> Result<()> {
+        // Load script
+        let script = std::fs::read_to_string(&self.script_path)?;
+        // Watch the given file
+        self.watcher
+            .watch(&self.script_path, notify::RecursiveMode::NonRecursive)?;
+        // and exec...
+        self.lua.load(&script).exec()?;
+        self.needs_reload
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+
+        // Run init function, if there is one
+        let init_func: Option<Function> = self.lua.globals().get("_Init")?;
+        if let Some(f) = init_func {
+            info!("Calling _Init() function...");
+            f.call(())?;
+        } else {
+            info!("No _Init() function to call...");
+        }
+
         Ok(())
     }
 }
