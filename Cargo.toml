@@ -15,6 +15,7 @@ line_drawing = "1.0.0"
 log = "0.4.14"
 parking_lot  = "0.11"
 pixels = "0.8.0"
+png = "0.17"
 mlua = { version = "0.6.6", features = ["luajit"]}
 thiserror = "1.0"
 winit = "0.25"

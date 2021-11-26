@@ -1,4 +1,5 @@
 use std::{
+    fs::File,
     path::{Path, PathBuf},
     sync::{atomic::AtomicBool, Arc},
     time::UNIX_EPOCH,
@@ -10,9 +11,18 @@ use log::{error, info};
 use mlua::{prelude::*, Function};
 use notify::{recommended_watcher, Watcher};
 use parking_lot::Mutex;
+use thiserror::Error;
 
 use crate::SCREEN_HEIGHT;
 use crate::SCREEN_WIDTH;
+
+#[derive(Debug, Error)]
+enum ApiError {
+    #[error("error loading a PNG image")]
+    LoadImg,
+    #[error("io error: {0}")]
+    Io(std::io::Error),
+}
 
 lazy_static! {
     static ref SCREEN: Mutex<Screen> = Mutex::new(Screen::new(SCREEN_WIDTH, SCREEN_HEIGHT));
@@ -62,12 +72,10 @@ impl LuaEffect {
             })?;
             globals.set("cls", cls)?;
             // pget
-            let pget = self
-                .lua
-                .create_function(|_, (x, y): (usize, usize)| {
-                    let c = SCREEN.lock().pget(x, y);
-                    Ok(c)
-                })?;
+            let pget = self.lua.create_function(|_, (x, y): (usize, usize)| {
+                let c = SCREEN.lock().pget(x, y);
+                Ok(c)
+            })?;
             globals.set("pget", pget)?;
             // pset
             let pset = self
@@ -85,6 +93,10 @@ impl LuaEffect {
                     Ok(())
                 })?;
             globals.set("pal", pal)?;
+
+            // load_png
+            let load_png = self.lua.create_function(load_png)?;
+            globals.set("load_png", load_png)?;
         }
 
         self.load_and_exec_script()?;
@@ -127,7 +139,8 @@ impl LuaEffect {
         self.watcher
             .watch(&self.script_path, notify::RecursiveMode::NonRecursive)?;
         // and exec...
-        self.lua.load(&script)
+        self.lua
+            .load(&script)
             .set_name(&self.script_path.display().to_string())?
             .exec()?;
         self.needs_reload
@@ -192,4 +205,26 @@ impl Screen {
     pub fn pal(&mut self, idx: u8, c: Rgb) {
         self.palette[idx as usize] = c;
     }
+}
+
+fn load_png<'lua>(lua: &'lua Lua, path: String) -> LuaResult<LuaTable<'lua>> {
+    let decoder = png::Decoder::new(File::open(path)?);
+    let mut reader = decoder.read_info().map_err(|e| LuaError::external(e))?;
+    let palette = reader
+        .info()
+        .palette
+        .as_ref()
+        .cloned()
+        .ok_or_else(|| LuaError::external(ApiError::LoadImg))?
+        .into_owned();
+    let mut output = vec![0; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut output).map_err(|e| LuaError::external(e))?;
+
+    let table = lua.create_table()?;
+    table.set("width", info.width)?;
+    table.set("height", info.height)?;
+    table.set("palette", palette)?;
+    table.set("data", output)?;
+
+    Ok(table)
 }
