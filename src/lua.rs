@@ -207,9 +207,9 @@ impl Screen {
     }
 }
 
-fn load_png<'lua>(lua: &'lua Lua, path: String) -> LuaResult<LuaTable<'lua>> {
+fn load_png(lua: & Lua, path: String) -> LuaResult<LuaTable> {
     let decoder = png::Decoder::new(File::open(path)?);
-    let mut reader = decoder.read_info().map_err(|e| LuaError::external(e))?;
+    let mut reader = decoder.read_info().map_err(LuaError::external)?;
     let palette = reader
         .info()
         .palette
@@ -218,7 +218,7 @@ fn load_png<'lua>(lua: &'lua Lua, path: String) -> LuaResult<LuaTable<'lua>> {
         .ok_or_else(|| LuaError::external(ApiError::LoadImg))?
         .into_owned();
     let mut output = vec![0; reader.output_buffer_size()];
-    let info = reader.next_frame(&mut output).map_err(|e| LuaError::external(e))?;
+    let info = reader.next_frame(&mut output).map_err(LuaError::external)?;
 
     let table = lua.create_table()?;
     table.set("width", info.width)?;
